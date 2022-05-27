@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package product;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "../pkg/domain";
+
+message FetchRequest {
+  string url = 1;
+}
+
+message Filters {
+  int64 page = 1;
+  int64 page_size = 2;
+  string sort = 3;
+}
+
+message ListResponse {
+  message MetaData {
+    int64 current_page = 1;
+    int64  page_size = 2;
+    int64  first_page = 3;
+    int64  last_page = 4;
+    int64  total_records = 5;
+  }
+  MetaData metadata = 1;
+  message Product {
+    string name = 1;
+    int64 price = 2;
+  }
+  repeated Product results = 2;
+}
+
+service ProductService {
+  rpc Fetch(FetchRequest) returns (google.protobuf.Empty) {}
+  rpc List(stream Filters) returns (stream ListResponse) {}
+}

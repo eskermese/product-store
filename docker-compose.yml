@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  grpc-service:
+    container_name: grpc_backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9009:9009"
+    environment:
+      - GRPC_PORT=9009
+    volumes:
+      - ./.bin/:/root/
+    env_file:
+      - .env
+    depends_on:
+      - grpc-db
+    restart: on-failure
+  grpc-db:
+    container_name: grpc_db
+    image: mongo:4.4-bionic
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=g0langn1nja
+    restart: on-failure
+volumes:
+  mongo_data:
