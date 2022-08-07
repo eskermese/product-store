@@ -22,6 +22,8 @@ services:
     image: mongo:4.4-bionic
     volumes:
       - mongo_data:/data/db
+    ports:
+      - "27017:27017"
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=g0langn1nja
