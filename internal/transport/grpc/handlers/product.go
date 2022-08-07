@@ -3,9 +3,8 @@ package grpcHandler
 import (
 	"context"
 	"errors"
+	"github.com/ernur-eskermes/product-store/pkg/pagination"
 	"io"
-	"math"
-	"net/http"
 
 	"github.com/ernur-eskermes/product-store/internal/core"
 	pb "github.com/ernur-eskermes/product-store/pkg/domain"
@@ -101,15 +100,16 @@ func (h *Product) List(stream pb.ProductService_ListServer) error {
 }
 
 func calculateMetadata(totalRecords, page, pageSize int64) *pb.ListResponse_MetaData {
-	if totalRecords == 0 {
+	p, err := pagination.New(totalRecords, page, pageSize)
+	if err != nil {
 		return nil
 	}
 
 	return &pb.ListResponse_MetaData{
-		CurrentPage:  page,
-		PageSize:     pageSize,
-		FirstPage:    1,
-		LastPage:     int64(math.Ceil(float64(totalRecords) / float64(pageSize))),
-		TotalRecords: totalRecords,
+		CurrentPage:  p.CurrentPage,
+		PageSize:     p.PageSize,
+		FirstPage:    p.FirstPage,
+		LastPage:     p.LastPage,
+		TotalRecords: p.TotalRecords,
 	}
 }
