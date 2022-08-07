@@ -3,52 +3,53 @@ package grpcHandler
 import (
 	"context"
 	"errors"
-	"github.com/ernur-eskermes/product-store/pkg/pagination"
 	"io"
+	"net/url"
+
+	"github.com/ernur-eskermes/product-store/pkg/pagination"
 
 	"github.com/ernur-eskermes/product-store/internal/core"
 	pb "github.com/ernur-eskermes/product-store/pkg/domain"
 	"github.com/ernur-eskermes/product-store/pkg/filters"
-	"github.com/gocarina/gocsv"
 	"github.com/golang/protobuf/ptypes/empty"
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type Product struct {
+type ProductService interface {
+	UpdateOrCreate(ctx context.Context, products []core.Product) error
+	GetAll(ctx context.Context, f *filters.Filters) ([]core.Product, error)
+	GetTotalRecords(ctx context.Context) (int64, error)
+	GetCSVProducts(ctx context.Context, url string) ([]core.Product, error)
+}
+
+type ProductHandler struct {
 	service ProductService
 	pb.UnimplementedProductServiceServer
 }
 
-func NewProduct(service ProductService) *Product {
-	return &Product{
-		service: service,
-	}
+func NewProductHandler(s ProductService) *ProductHandler {
+	return &ProductHandler{service: s}
 }
 
-func (h *Product) Fetch(ctx context.Context, req *pb.FetchRequest) (*empty.Empty, error) {
-	resp, err := http.Get(req.Url)
-	if err != nil {
-		return &empty.Empty{}, status.Error(codes.NotFound, err.Error())
+func (h *ProductHandler) Fetch(ctx context.Context, req *pb.FetchRequest) (*empty.Empty, error) {
+	if _, err := url.ParseRequestURI(req.GetUrl()); err != nil {
+		return &empty.Empty{}, status.Error(codes.InvalidArgument, err.Error())
 	}
-	defer resp.Body.Close()
 
-	products := make([]core.Product, 0)
-	if err = gocsv.Unmarshal(resp.Body, &products); err != nil {
+	products, err := h.service.GetCSVProducts(ctx, req.GetUrl())
+	if err != nil {
 		return &empty.Empty{}, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	if err = h.service.UpdateOrCreate(ctx, products); err != nil {
-		log.Error(err)
-
 		return &empty.Empty{}, status.Error(codes.Unknown, err.Error())
 	}
 
 	return &empty.Empty{}, nil
 }
 
-func (h *Product) List(stream pb.ProductService_ListServer) error {
+func (h *ProductHandler) List(stream pb.ProductService_ListServer) error {
 	for {
 		req, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
@@ -72,15 +73,11 @@ func (h *Product) List(stream pb.ProductService_ListServer) error {
 
 		products, err := h.service.GetAll(context.TODO(), f)
 		if err != nil {
-			log.Error(err)
-
 			return status.Error(codes.Unknown, err.Error())
 		}
 
 		totalRecords, err := h.service.GetTotalRecords(context.TODO())
 		if err != nil {
-			log.Error(err)
-
 			return status.Error(codes.Unknown, err.Error())
 		}
 
