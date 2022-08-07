@@ -4,16 +4,20 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+type MongoConfig struct {
+	URI      string `required:"true"`
+	User     string `required:"true"`
+	Password string `required:"true"`
+	Database string `required:"true"`
+}
+
+type GRPCConfig struct {
+	Port int `required:"true"`
+}
+
 type Config struct {
-	Mongo struct {
-		URI      string
-		User     string
-		Password string
-		Database string
-	}
-	GRPC struct {
-		Port int
-	}
+	Mongo MongoConfig `required:"true"`
+	GRPC  GRPCConfig  `required:"true"`
 }
 
 func New() (*Config, error) {
